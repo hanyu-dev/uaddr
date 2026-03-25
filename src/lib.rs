@@ -1,16 +1,31 @@
 #![doc = include_str!("../README.md")]
+#![no_std]
 #![allow(clippy::must_use_candidate)]
 
-use std::borrow::Cow;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6, ToSocketAddrs};
-use std::str::FromStr;
-use std::sync::Arc;
-use std::{fmt, io};
+#[cfg(any(test, feature = "alloc"))]
+extern crate alloc;
+
+#[cfg(any(test, feature = "std"))]
+extern crate std;
+
+#[cfg(any(test, feature = "alloc"))]
+use alloc::borrow::Cow;
+#[cfg(any(test, feature = "alloc"))]
+use alloc::string::ToString as _;
+#[cfg(any(test, feature = "alloc"))]
+use alloc::sync::Arc;
+use core::fmt;
+use core::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use core::str::FromStr;
+#[cfg(any(test, feature = "std"))]
+use std::io;
+#[cfg(any(test, feature = "std"))]
+use std::net::ToSocketAddrs;
 
 use crate::error::ParseError;
 
 pub mod error;
-#[cfg(unix)]
+#[cfg(all(unix, any(test, feature = "std")))]
 pub mod unix;
 
 /// The prefix for Unix domain socket URIs.
@@ -51,32 +66,32 @@ impl From<SocketAddr> for UniAddr {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, any(test, feature = "std")))]
 impl From<std::os::unix::net::SocketAddr> for UniAddr {
     fn from(addr: std::os::unix::net::SocketAddr) -> Self {
         UniAddr::from_inner(UniAddrVariants::Unix(addr.into()))
     }
 }
 
-#[cfg(all(unix, feature = "feat-tokio"))]
+#[cfg(all(unix, feature = "tokio"))]
 impl From<tokio::net::unix::SocketAddr> for UniAddr {
     fn from(addr: tokio::net::unix::SocketAddr) -> Self {
         UniAddr::from_inner(UniAddrVariants::Unix(unix::SocketAddr::from(addr.into())))
     }
 }
 
-#[cfg(feature = "feat-socket2")]
+#[cfg(feature = "socket2")]
 impl TryFrom<socket2::SockAddr> for UniAddr {
-    type Error = io::Error;
+    type Error = std::io::Error;
 
     fn try_from(addr: socket2::SockAddr) -> Result<Self, Self::Error> {
         UniAddr::try_from(&addr)
     }
 }
 
-#[cfg(feature = "feat-socket2")]
+#[cfg(feature = "socket2")]
 impl TryFrom<&socket2::SockAddr> for UniAddr {
-    type Error = io::Error;
+    type Error = std::io::Error;
 
     fn try_from(addr: &socket2::SockAddr) -> Result<Self, Self::Error> {
         if let Some(addr) = addr.as_socket() {
@@ -98,40 +113,36 @@ impl TryFrom<&socket2::SockAddr> for UniAddr {
             return crate::unix::SocketAddr::new_abstract(addr).map(Self::from);
         }
 
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "unsupported address type",
-        ))
+        Err(std::io::Error::other("unsupported address type"))
     }
 }
 
-#[cfg(feature = "feat-socket2")]
+#[cfg(feature = "socket2")]
 impl TryFrom<UniAddr> for socket2::SockAddr {
-    type Error = io::Error;
+    type Error = std::io::Error;
 
     fn try_from(addr: UniAddr) -> Result<Self, Self::Error> {
         socket2::SockAddr::try_from(&addr)
     }
 }
 
-#[cfg(feature = "feat-socket2")]
+#[cfg(feature = "socket2")]
 impl TryFrom<&UniAddr> for socket2::SockAddr {
-    type Error = io::Error;
+    type Error = std::io::Error;
 
     fn try_from(addr: &UniAddr) -> Result<Self, Self::Error> {
         match &addr.inner {
             UniAddrVariants::Inet(addr) => Ok(socket2::SockAddr::from(*addr)),
             #[cfg(unix)]
             UniAddrVariants::Unix(addr) => socket2::SockAddr::unix(addr.to_os_string()),
-            UniAddrVariants::Host(_) => Err(io::Error::new(
-                io::ErrorKind::Other,
+            UniAddrVariants::Host(_) => Err(std::io::Error::other(
                 "The host name address must be resolved before converting to SockAddr",
             )),
         }
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, any(test, feature = "std")))]
 impl From<crate::unix::SocketAddr> for UniAddr {
     fn from(addr: crate::unix::SocketAddr) -> Self {
         UniAddr::from_inner(UniAddrVariants::Unix(addr))
@@ -146,7 +157,7 @@ impl FromStr for UniAddr {
     }
 }
 
-#[cfg(feature = "feat-serde")]
+#[cfg(feature = "serde")]
 impl serde::Serialize for UniAddr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -156,13 +167,13 @@ impl serde::Serialize for UniAddr {
     }
 }
 
-#[cfg(feature = "feat-serde")]
+#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for UniAddr {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        Self::new(&String::deserialize(deserializer)?).map_err(serde::de::Error::custom)
+        Self::new(<&str>::deserialize(deserializer)?).map_err(serde::de::Error::custom)
     }
 }
 
@@ -319,6 +330,7 @@ impl UniAddr {
         Ok(())
     }
 
+    #[cfg(any(test, feature = "std"))]
     /// Resolves the address if it is a host name.
     ///
     /// By default, we utilize the method [`ToSocketAddrs::to_socket_addrs`]
@@ -333,6 +345,7 @@ impl UniAddr {
         self.blocking_resolve_socket_addrs_with(ToSocketAddrs::to_socket_addrs)
     }
 
+    #[cfg(any(test, feature = "std"))]
     /// Resolves the address if it is a host name using a custom resolver
     /// function.
     ///
@@ -358,7 +371,7 @@ impl UniAddr {
         Ok(())
     }
 
-    #[cfg(feature = "feat-tokio")]
+    #[cfg(feature = "tokio")]
     /// Asynchronously resolves the address if it is a host name.
     ///
     /// This method will spawn a blocking Tokio task to perform the resolution
@@ -428,6 +441,7 @@ impl fmt::Display for UniAddrVariants {
 }
 
 impl UniAddrVariants {
+    #[cfg(any(test, feature = "alloc"))]
     #[inline]
     /// Serializes the address to a string.
     pub fn to_str(&self) -> Cow<'_, str> {

@@ -1,7 +1,6 @@
 //! Error types for `uni-addr`.
 
 use core::fmt;
-use std::io;
 
 #[derive(Debug)]
 /// Errors that can occur when parsing a [`UniAddr`] from a string.
@@ -17,8 +16,9 @@ pub enum ParseError {
     /// Invalid address format: missing or invalid port
     InvalidPort,
 
+    #[cfg(all(unix, any(test, feature = "std")))]
     /// Invalid UDS address format
-    InvalidUDSAddress(io::Error),
+    InvalidUDSAddress(std::io::Error),
 
     /// Unsupported address type on this platform
     Unsupported,
@@ -30,23 +30,26 @@ impl fmt::Display for ParseError {
             Self::Empty => write!(f, "empty address string"),
             Self::InvalidHost => write!(f, "invalid host name"),
             Self::InvalidPort => write!(f, "invalid port"),
+            #[cfg(all(unix, any(test, feature = "std")))]
             Self::InvalidUDSAddress(err) => write!(f, "invalid UDS address: {err}"),
             Self::Unsupported => write!(f, "unsupported address type on this platform"),
         }
     }
 }
 
-impl std::error::Error for ParseError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for ParseError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
+            #[cfg(all(unix, any(test, feature = "std")))]
             Self::InvalidUDSAddress(err) => Some(err),
             _ => None,
         }
     }
 }
 
-impl From<ParseError> for io::Error {
+#[cfg(any(test, feature = "std"))]
+impl From<ParseError> for std::io::Error {
     fn from(value: ParseError) -> Self {
-        io::Error::new(io::ErrorKind::Other, value)
+        std::io::Error::other(value)
     }
 }

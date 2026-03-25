@@ -2,7 +2,7 @@
 name = "uni-addr"
 version = "0.4.0-dev.0"
 edition = "2021"
-rust-version = "1.71.0"
+rust-version = "1.81.0"
 authors = ["Hantong Chen <cxwdyx620@gmail.com>"]
 categories = ["network-programming"]
 description = "A unified address type that can represent a `std::net::SocketAddr`, a `std::os::unix::net::SocketAddr`, or a host name with port."
@@ -12,7 +12,8 @@ readme = "README.md"
 repository = "https://github.com/hanyu-dev/uni-addr"
 
 [dependencies]
-serde = { version = "1.0", optional = true }
+memchr = { version = "2.8", default-features = false }
+serde = { version = "1.0", default-features = false, optional = true }
 socket2 = { version = "0.6.3", optional = true }
 tokio = { version = "1.50", features = ["net", "rt"], optional = true }
 wrapper-lite = "0.4.0"
@@ -21,52 +22,61 @@ wrapper-lite = "0.4.0"
 foldhash = { version = "0.2.0", default-features = false }
 rstest = { version = "0.26.1", default-features = false }
 tokio = { version = "1.50", features = ["rt", "macros"] }
-uni-addr = { path = "./", features = ["feat-socket2"] }
+uni-addr = { path = ".", features = ["std", "tokio", "serde", "socket2"] }
 
 [features]
-default = ["feat-tokio", "feat-serde"]
+default = ["std"]
 
-# Enable Tokio support
-feat-tokio = ["dep:tokio"]
+# Enable `alloc` support.
+#
+# This is required for `HostAddr` and some serialization features.
+alloc = []
 
-# Enable Serde support
-feat-serde = ["dep:serde"]
+# Enable Rust's `std` support.
+#
+# This is required for unix's `SocketAddr` and many platform-specific features.
+std = ["alloc", "memchr/std"]
 
-# Enable conversions between `UniAddr` and `socket2::SockAddr`
-feat-socket2 = ["dep:socket2"]
+# Bridge feature: enable features related to crate `tokio`.
+tokio = ["std", "dep:tokio"]
+
+# Bridge feature: enable features related to crate `serde`.
+serde = ["dep:serde"]
+
+# Bridge feature: enable features related to crate `socket2`.
+socket2 = ["std", "dep:socket2"]
 
 [lints]
+# ---
+clippy.pedantic = "warn"
+clippy.nursery = "warn"
+# ---
 clippy.allow_attributes_without_reason = "warn"
 clippy.assertions_on_result_states = "warn"
-clippy.assigning_clones = "warn"
-clippy.bool_to_int_with_if = "warn"
 clippy.cognitive_complexity = "warn"
 clippy.create_dir = "warn"
 clippy.dbg_macro = "warn"
-clippy.debug_assert_with_mut_call = "warn"
-clippy.default_trait_access = "warn"
 clippy.disallowed_script_idents = "deny"
-clippy.doc_link_with_quotes = "warn"
-clippy.doc_markdown = "warn"
 clippy.else_if_without_else = "deny"
-clippy.enum_glob_use = "warn"
+clippy.exhaustive_enums = "warn"
+clippy.exhaustive_structs = "warn"
 clippy.filetype_is_file = "warn"
-clippy.inefficient_to_string = "warn"
 clippy.mem_forget = "warn"
-clippy.missing_panics_doc = "warn"
 clippy.mod_module_files = "deny"
 clippy.multiple_inherent_impl = "warn"
+clippy.must_use_candidate = "allow"
 clippy.mutex_atomic = "warn"
 clippy.mutex_integer = "warn"
-clippy.needless_continue = "warn"
 clippy.panic = "warn"
-clippy.significant_drop_in_scrutinee = "warn"
+clippy.string_slice = "warn"
 clippy.todo = "warn"
 clippy.unimplemented = "warn"
 clippy.unreachable = "warn"
 clippy.wildcard_dependencies = "deny"
-clippy.wildcard_imports = "warn"
-rust.unsafe_code = "warn"
+# ---
 rust.missing_docs = "warn"
 rust.missing_debug_implementations = "warn"
+rust.unexpected_cfgs = "allow"
+rust.unknown_lints = "allow"
 rust.unreachable_pub = "warn"
+rust.unsafe_code = "warn"

@@ -1,7 +1,8 @@
 //! Platform-specific code for Unix-like systems
 
+use alloc::string::String;
+use core::hash::{Hash, Hasher};
 use std::ffi::{CStr, OsStr, OsString};
-use std::hash::{Hash, Hasher};
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::{fmt, fs, io};
@@ -334,7 +335,7 @@ impl Hash for SocketAddr {
     }
 }
 
-#[cfg(feature = "feat-serde")]
+#[cfg(feature = "serde")]
 impl serde::Serialize for SocketAddr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -344,7 +345,7 @@ impl serde::Serialize for SocketAddr {
     }
 }
 
-#[cfg(feature = "feat-serde")]
+#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for SocketAddr {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
