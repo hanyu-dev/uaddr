@@ -7,6 +7,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, io};
 
+use crate::error::ParseError;
+
+pub mod error;
 #[cfg(unix)]
 pub mod unix;
 
@@ -39,26 +42,26 @@ wrapper_lite::wrapper!(
     ///   host name is valid.
     /// - Tries to parse as a network socket address.
     /// - Otherwise, treats the input as a host name.
-    pub struct UniAddr(UniAddrInner);
+    pub struct UniAddr(UniAddrVariants);
 );
 
 impl From<SocketAddr> for UniAddr {
     fn from(addr: SocketAddr) -> Self {
-        UniAddr::from_inner(UniAddrInner::Inet(addr))
+        UniAddr::from_inner(UniAddrVariants::Inet(addr))
     }
 }
 
 #[cfg(unix)]
 impl From<std::os::unix::net::SocketAddr> for UniAddr {
     fn from(addr: std::os::unix::net::SocketAddr) -> Self {
-        UniAddr::from_inner(UniAddrInner::Unix(addr.into()))
+        UniAddr::from_inner(UniAddrVariants::Unix(addr.into()))
     }
 }
 
 #[cfg(all(unix, feature = "feat-tokio"))]
 impl From<tokio::net::unix::SocketAddr> for UniAddr {
     fn from(addr: tokio::net::unix::SocketAddr) -> Self {
-        UniAddr::from_inner(UniAddrInner::Unix(unix::SocketAddr::from(addr.into())))
+        UniAddr::from_inner(UniAddrVariants::Unix(unix::SocketAddr::from(addr.into())))
     }
 }
 
@@ -117,10 +120,10 @@ impl TryFrom<&UniAddr> for socket2::SockAddr {
 
     fn try_from(addr: &UniAddr) -> Result<Self, Self::Error> {
         match &addr.inner {
-            UniAddrInner::Inet(addr) => Ok(socket2::SockAddr::from(*addr)),
+            UniAddrVariants::Inet(addr) => Ok(socket2::SockAddr::from(*addr)),
             #[cfg(unix)]
-            UniAddrInner::Unix(addr) => socket2::SockAddr::unix(addr.to_os_string()),
-            UniAddrInner::Host(_) => Err(io::Error::new(
+            UniAddrVariants::Unix(addr) => socket2::SockAddr::unix(addr.to_os_string()),
+            UniAddrVariants::Host(_) => Err(io::Error::new(
                 io::ErrorKind::Other,
                 "The host name address must be resolved before converting to SockAddr",
             )),
@@ -131,7 +134,7 @@ impl TryFrom<&UniAddr> for socket2::SockAddr {
 #[cfg(unix)]
 impl From<crate::unix::SocketAddr> for UniAddr {
     fn from(addr: crate::unix::SocketAddr) -> Self {
-        UniAddr::from_inner(UniAddrInner::Unix(addr))
+        UniAddr::from_inner(UniAddrVariants::Unix(addr))
     }
 }
 
@@ -178,7 +181,7 @@ impl UniAddr {
         #[cfg(unix)]
         if let Some(addr) = addr.strip_prefix(UNIX_URI_PREFIX) {
             return unix::SocketAddr::new(addr)
-                .map(UniAddrInner::Unix)
+                .map(UniAddrVariants::Unix)
                 .map(Self::from_inner)
                 .map_err(ParseError::InvalidUDSAddress);
         }
@@ -200,7 +203,7 @@ impl UniAddr {
         if host.chars().next().is_some_and(|c| c.is_ascii_digit()) {
             return Ipv4Addr::from_str(host)
                 .map(|ip| SocketAddr::V4(SocketAddrV4::new(ip, port)))
-                .map(UniAddrInner::Inet)
+                .map(UniAddrVariants::Inet)
                 .map(Self::from_inner)
                 .map_err(|_| ParseError::InvalidHost)
                 .or_else(|_| {
@@ -214,7 +217,7 @@ impl UniAddr {
         if let Some(ipv6_addr) = host.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
             return Ipv6Addr::from_str(ipv6_addr)
                 .map(|ip| SocketAddr::V6(SocketAddrV6::new(ip, port, 0, 0)))
-                .map(UniAddrInner::Inet)
+                .map(UniAddrVariants::Inet)
                 .map(Self::from_inner)
                 .map_err(|_| ParseError::InvalidHost);
         }
@@ -247,7 +250,7 @@ impl UniAddr {
 
         Self::validate_host_name(hostname.as_bytes()).map_err(|()| ParseError::InvalidHost)?;
 
-        Ok(Self::from_inner(UniAddrInner::Host(Arc::from(addr))))
+        Ok(Self::from_inner(UniAddrVariants::Host(Arc::from(addr))))
     }
 
     // https://github.com/rustls/pki-types/blob/b8c04aa6b7a34875e2c4a33edc9b78d31da49523/src/server_name.rs
@@ -341,7 +344,7 @@ impl UniAddr {
         F: FnOnce(&str) -> io::Result<A>,
         A: Iterator<Item = SocketAddr>,
     {
-        if let UniAddrInner::Host(addr) = self.as_inner() {
+        if let UniAddrVariants::Host(addr) = self.as_inner() {
             let resolved = f(addr)?.next().ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::Other,
@@ -349,7 +352,7 @@ impl UniAddr {
                 )
             })?;
 
-            *self = Self::from_inner(UniAddrInner::Inet(resolved));
+            *self = Self::from_inner(UniAddrVariants::Inet(resolved));
         }
 
         Ok(())
@@ -366,7 +369,7 @@ impl UniAddr {
     ///
     /// Resolution failure, or if no socket address resolved.
     pub async fn resolve_socket_addrs(&mut self) -> io::Result<()> {
-        if let UniAddrInner::Host(addr) = self.as_inner() {
+        if let UniAddrVariants::Host(addr) = self.as_inner() {
             let addr = addr.clone();
             let resolved = tokio::task::spawn_blocking(move || addr.to_socket_addrs())
                 .await??
@@ -378,7 +381,7 @@ impl UniAddr {
                     )
                 })?;
 
-            *self = Self::from_inner(UniAddrInner::Inet(resolved));
+            *self = Self::from_inner(UniAddrVariants::Inet(resolved));
         }
 
         Ok(())
@@ -391,6 +394,10 @@ impl UniAddr {
     }
 }
 
+#[deprecated(since = "0.4.0", note = "Use `UniAddrVariants` instead")]
+#[doc(hidden)]
+pub type UniAddrInner = UniAddrVariants;
+
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// See [`UniAddr`].
@@ -398,7 +405,7 @@ impl UniAddr {
 /// Generally, you should use [`UniAddr`] instead of this type directly, as
 /// we expose this type only for easier pattern matching. A valid [`UniAddr`]
 /// can be constructed only through [`FromStr`] implementation.
-pub enum UniAddrInner {
+pub enum UniAddrVariants {
     /// See [`SocketAddr`].
     Inet(SocketAddr),
 
@@ -414,13 +421,13 @@ pub enum UniAddrInner {
     Host(Arc<str>),
 }
 
-impl fmt::Display for UniAddrInner {
+impl fmt::Display for UniAddrVariants {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.to_str().fmt(f)
     }
 }
 
-impl UniAddrInner {
+impl UniAddrVariants {
     #[inline]
     /// Serializes the address to a string.
     pub fn to_str(&self) -> Cow<'_, str> {
@@ -434,52 +441,6 @@ impl UniAddrInner {
                 .into(),
             Self::Host(host) => Cow::Borrowed(host),
         }
-    }
-}
-
-#[derive(Debug)]
-/// Errors that can occur when parsing a [`UniAddr`] from a string.
-pub enum ParseError {
-    /// Empty input string
-    Empty,
-
-    /// Invalid or missing hostname, or an invalid Ipv4 / IPv6 address
-    InvalidHost,
-
-    /// Invalid address format: missing or invalid port
-    InvalidPort,
-
-    /// Invalid UDS address format
-    InvalidUDSAddress(io::Error),
-
-    /// Unsupported address type on this platform
-    Unsupported,
-}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => write!(f, "empty address string"),
-            Self::InvalidHost => write!(f, "invalid or missing host address"),
-            Self::InvalidPort => write!(f, "invalid or missing port"),
-            Self::InvalidUDSAddress(err) => write!(f, "invalid UDS address: {err}"),
-            Self::Unsupported => write!(f, "unsupported address type on this platform"),
-        }
-    }
-}
-
-impl std::error::Error for ParseError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::InvalidUDSAddress(err) => Some(err),
-            _ => None,
-        }
-    }
-}
-
-impl From<ParseError> for io::Error {
-    fn from(value: ParseError) -> Self {
-        io::Error::new(io::ErrorKind::Other, value)
     }
 }
 
