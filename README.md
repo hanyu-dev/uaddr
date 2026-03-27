@@ -5,6 +5,9 @@
 [![Docs.rs](https://img.shields.io/docsrs/uni-addr)](https://docs.rs/crate/uni-addr/latest)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/license/mit/)
 
+> [!WARNING]
+> This crate is deprecated, use [uaddr](https://crates.io/crates/uaddr) instead.
+
 This crate provides a unified address type that can represent a `std::net::SocketAddr`, a `std::os::unix::net::SocketAddr`, or a host name with port.
 
 ## License

@@ -1,5 +1,9 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::must_use_candidate)]
+#![deprecated(
+    since = "0.0.0",
+    note = "This crate is deprecated, use `uaddr` instead: https://crates.io/crates/uaddr"
+)]
 
 use std::borrow::Cow;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6, ToSocketAddrs};
