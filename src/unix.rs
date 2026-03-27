@@ -218,24 +218,24 @@ impl<'a> UnixAddr<'a> {
     /// ```rust
     /// use uaddr::unix::UnixAddr;
     ///
-    /// let addr = UnixAddr::from_pathname_until_nil(b"/path/to/your/file.socket").unwrap();
+    /// let addr = UnixAddr::from_pathname_until_nul(b"/path/to/your/file.socket").unwrap();
     /// assert!(addr.is_pathname());
     /// assert_eq!(addr.as_pathname(), Some(&b"/path/to/your/file.socket"[..]));
     ///
-    /// let addr = UnixAddr::from_pathname_until_nil(b"/path/to/your/file.sock\0et\0").unwrap();
+    /// let addr = UnixAddr::from_pathname_until_nul(b"/path/to/your/file.sock\0et\0").unwrap();
     /// assert!(addr.is_pathname());
     /// assert_eq!(addr.as_pathname(), Some(&b"/path/to/your/file.sock"[..]));
     ///
-    /// let addr = UnixAddr::from_pathname_until_nil(b"@abstract-socket").unwrap();
+    /// let addr = UnixAddr::from_pathname_until_nul(b"@abstract-socket").unwrap();
     /// assert!(addr.is_pathname());
     /// assert_eq!(addr.as_pathname(), Some(&b"@abstract-socket"[..]));
     ///
-    /// let _ = UnixAddr::from_pathname_until_nil(b"").unwrap_err();
-    /// let _ = UnixAddr::from_pathname_until_nil(b"\0").unwrap_err();
+    /// let _ = UnixAddr::from_pathname_until_nul(b"").unwrap_err();
+    /// let _ = UnixAddr::from_pathname_until_nul(b"\0").unwrap_err();
     /// ```
     ///
     /// [`from_pathname`]: Self::from_pathname
-    pub fn from_pathname_until_nil(path: &'a [u8]) -> Result<Self, ParseError> {
+    pub fn from_pathname_until_nul(path: &'a [u8]) -> Result<Self, ParseError> {
         if path.is_empty() {
             return Err(ParseError::Empty);
         }
