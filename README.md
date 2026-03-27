@@ -13,6 +13,26 @@ This crate provides a unified address type that can represent:
 
 The former name of this crate was `uni-addr` and we renamed it to `uaddr` since version 0.4.0.
 
+## Migration from `uni-addr` (migration from 0.3.x to 0.4.0)
+
+The key changes are:
+
+1. `crate::unix::SocketAddr` is now removed, and we introduce `crate::unix::UnixAddr` instead.
+
+   The former was a wrapper type over `std::os::unix::net::SocketAddr` and the latter is a standalone type that can represent both filesystem-based and abstract namespace UDS addresses, and can be converted to `std::os::unix::net::SocketAddr` if needed.
+
+1. New dedicated `crate::host::HostAddr` type representing a host address.
+
+   See below for the motivation.
+
+1. `crate::UniAddrInner` is now removed, just do pattern matching against `crate::UniAddr` directly.
+
+   Before 0.4.0, we stored `HostAddr` directly as a "host:port" style string, which was a design mistake. In order to prevent callers from directly constructing invalid `Host` variant content, we stored the variant as `UniAddrInner` and made `UniAddr` a wrapper type, which made pattern matching on `UniAddr` very cumbersome. We have now fixed this.
+
+1. `no_std` support.
+
+   Since `crate::unix::SocketAddr`, which wraps a `std::os::unix::net::SocketAddr`, has been deprecated, this library is now `no_std` compatible.
+
 ## License
 
 Licensed under either of:
