@@ -3,12 +3,12 @@
 _default:
 	just --list
 
-# Run all tests with nextest
-ci-test *args:
+# Generate code coverage report
+ci-cov *args:
 	#!/bin/bash -eux
 	cargo llvm-cov nextest --no-report --locked
 	cargo llvm-cov --no-report --doc --locked
-	cargo llvm-cov report --doctests --lcov --output-dir coverage --ignore-filename-regex fuzz
+	cargo llvm-cov report --doctests --lcov --output-path coverage.lcov --ignore-filename-regex fuzz
 
 # =========== LOCAL COMMANDS ===========
 

@@ -2,10 +2,10 @@
 
 use alloc::string::String;
 use alloc::sync::Arc;
+use core::fmt;
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 use core::str::FromStr;
-use core::{fmt, mem};
 
 use crate::error::ParseError;
 
@@ -63,7 +63,8 @@ wrapper_lite::wrapper!(
 );
 
 #[cfg(unix)]
-const SUN_LEN: usize = mem::size_of::<libc::sockaddr_un>() - mem::size_of::<libc::sa_family_t>();
+const SUN_LEN: usize =
+    core::mem::size_of::<libc::sockaddr_un>() - core::mem::size_of::<libc::sa_family_t>();
 
 #[cfg(not(unix))]
 const SUN_LEN: usize = usize::MAX;
@@ -189,7 +190,7 @@ impl<'a> UnixAddr<'a> {
     /// let _ = UnixAddr::from_pathname(b"\0abstract-socket").unwrap_err();
     /// let _ = UnixAddr::from_pathname(b"").unwrap_err();
     /// ```
-    /// 
+    ///
     /// [`from_str`]: Self::from_str
     pub fn from_pathname(path: &'a [u8]) -> Result<Self, ParseError> {
         if path.is_empty() {

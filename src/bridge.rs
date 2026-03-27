@@ -156,7 +156,7 @@ mod socket2 {
     impl TryFrom<&UnixAddr<'_>> for socket2::SockAddr {
         type Error = io::Error;
 
-        fn try_from(value: &UnixAddr<'_>) -> Result<Self, Self::Error> {
+        fn try_from(_: &UnixAddr<'_>) -> Result<Self, Self::Error> {
             Err(io::Error::other(InvalidUniAddr::Unsupported))
         }
     }
@@ -236,7 +236,7 @@ mod socket2 {
     impl<'a> TryFrom<&'a socket2::SockAddr> for UnixAddr<'a> {
         type Error = ParseError;
 
-        fn try_from(value: &'a socket2::SockAddr) -> Result<Self, Self::Error> {
+        fn try_from(_: &'a socket2::SockAddr) -> Result<Self, Self::Error> {
             Err(ParseError::Unsupported)
         }
     }
@@ -481,65 +481,6 @@ mod tests {
     use crate::unix::UnixAddr;
     use crate::UniAddr;
 
-    #[cfg(unix)]
-    fn test_unix_addr_try_from_general<T>(
-        as_pathname: impl Fn(&T) -> Option<&[u8]>,
-        #[cfg(any(target_os = "linux", target_os = "android"))] as_abstract_name: impl Fn(
-            &T,
-        )
-            -> Option<
-            &[u8],
-        >,
-        as_unnamed: impl Fn(&T) -> Option<&[u8]>,
-    ) where
-        T: for<'a> TryFrom<UnixAddr<'a>, Error: core::fmt::Debug>,
-        T: for<'a, 'b> TryFrom<&'a UnixAddr<'b>, Error: core::fmt::Debug>,
-        UnixAddr<'static>: TryFrom<T, Error: core::fmt::Debug>,
-        for<'a> UnixAddr<'a>: TryFrom<&'a T, Error: core::fmt::Debug>,
-    {
-        macro_rules! test {
-            ($bytes:expr, $fn:ident) => {
-                let uaddr = UnixAddr::from_bytes($bytes).unwrap();
-
-                let addr = T::try_from(&uaddr).unwrap();
-                assert_eq!($fn(&addr), Some($bytes));
-                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
-                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
-
-                let addr = T::try_from(uaddr.clone()).unwrap();
-                assert_eq!($fn(&addr), Some($bytes));
-                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
-                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
-            };
-            ($bytes:expr, $expected:expr, $fn:ident) => {
-                let uaddr = UnixAddr::from_bytes($bytes).unwrap();
-
-                let addr = T::try_from(&uaddr).unwrap();
-                assert_eq!($fn(&addr), Some($expected));
-                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
-                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
-
-                let addr = T::try_from(uaddr.clone()).unwrap();
-                assert_eq!($fn(&addr), Some($expected));
-                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
-                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
-            };
-        }
-
-        test!(&b"/path/to/your/file.socket"[..], as_pathname);
-
-        #[cfg(any(target_os = "linux", target_os = "android"))]
-        {
-            test!(
-                &b"\0abstract-socket"[..],
-                &b"abstract-socket"[..],
-                as_abstract_name
-            );
-        }
-
-        test!(&b""[..], as_unnamed);
-    }
-
     #[test]
     fn test_uni_addr_try_from_std() {
         let addr = "127.0.0.1:13168".parse::<SocketAddr>().unwrap();
@@ -722,6 +663,62 @@ mod tests {
     }
 
     #[cfg(unix)]
+    fn test_unix_addr_try_from_general<T>(
+        as_pathname: impl Fn(&T) -> Option<&[u8]>,
+        #[rustfmt::skip]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
+        as_abstract_name: impl Fn(&T) -> Option<&[u8]>,
+        as_unnamed: impl Fn(&T) -> Option<&[u8]>,
+    ) where
+        T: for<'a> TryFrom<UnixAddr<'a>, Error: core::fmt::Debug>,
+        T: for<'a, 'b> TryFrom<&'a UnixAddr<'b>, Error: core::fmt::Debug>,
+        UnixAddr<'static>: TryFrom<T, Error: core::fmt::Debug>,
+        for<'a> UnixAddr<'a>: TryFrom<&'a T, Error: core::fmt::Debug>,
+    {
+        macro_rules! test {
+            ($bytes:expr, $fn:ident) => {
+                let uaddr = UnixAddr::from_bytes($bytes).unwrap();
+
+                let addr = T::try_from(&uaddr).unwrap();
+                assert_eq!($fn(&addr), Some($bytes));
+                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
+                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
+
+                let addr = T::try_from(uaddr.clone()).unwrap();
+                assert_eq!($fn(&addr), Some($bytes));
+                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
+                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
+            };
+            ($bytes:expr, $expected:expr, $fn:ident) => {
+                let uaddr = UnixAddr::from_bytes($bytes).unwrap();
+
+                let addr = T::try_from(&uaddr).unwrap();
+                assert_eq!($fn(&addr), Some($expected));
+                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
+                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
+
+                let addr = T::try_from(uaddr.clone()).unwrap();
+                assert_eq!($fn(&addr), Some($expected));
+                assert_eq!(UnixAddr::try_from(&addr).unwrap(), uaddr);
+                assert_eq!(UnixAddr::try_from(addr).unwrap(), uaddr);
+            };
+        }
+
+        test!(&b"/path/to/your/file.socket"[..], as_pathname);
+
+        #[cfg(any(target_os = "linux", target_os = "android"))]
+        {
+            test!(
+                &b"\0abstract-socket"[..],
+                &b"abstract-socket"[..],
+                as_abstract_name
+            );
+        }
+
+        test!(&b""[..], as_unnamed);
+    }
+
+    #[cfg(unix)]
     #[test]
     fn test_unix_addr_try_from_std() {
         #[cfg(target_os = "android")]
@@ -746,6 +743,7 @@ mod tests {
 
         test_unix_addr_try_from_general::<tokio::net::unix::SocketAddr>(
             |addr| addr.as_pathname().map(|v| v.as_os_str().as_bytes()),
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             |addr| addr.as_abstract_name(),
             |addr| addr.is_unnamed().then_some(&[]),
         );
@@ -758,6 +756,7 @@ mod tests {
 
         test_unix_addr_try_from_general::<socket2::SockAddr>(
             |addr| addr.as_pathname().map(|v| v.as_os_str().as_bytes()),
+            #[cfg(any(target_os = "linux", target_os = "android"))]
             |addr| addr.as_abstract_namespace(),
             |addr| addr.is_unnamed().then_some(&[]),
         );

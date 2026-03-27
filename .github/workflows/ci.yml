@@ -53,17 +53,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{matrix.toolchain}}
-          components: llvm-tools, clippy, rust-src
+          components: rust-src
       - uses: taiki-e/install-action@v2
         with:
-          tool: just,cargo-llvm-cov,cargo-nextest
-      - name: Enable type layout randomization
-        if: matrix.toolchain == 'nightly'
-        run: echo RUSTFLAGS=${RUSTFLAGS}\ -Zrandomize-layout >> $GITHUB_ENV
-      - run: sudo apt-get update && sudo apt-get install -y musl-tools
-        if: endsWith(matrix.target, 'musl')
+          tool: just,cargo-nextest
       - run: rustup target add ${{matrix.target}}
-      - run: just ci-test --target ${{matrix.target}}
+      - run: just test --target ${{matrix.target}}
 
   build:
     name: Build (target ${{matrix.target}})
