@@ -22,7 +22,7 @@ pub enum ParseError {
     InvalidPort,
 
     /// Invalid [`UnixAddr`].
-    /// 
+    ///
     /// [`UnixAddr`]: crate::unix::UnixAddr
     InvalidUnixAddr,
 
@@ -55,7 +55,7 @@ impl core::error::Error for ParseError {}
 /// [`UniAddr`]: crate::UniAddr
 pub enum InvalidUniAddr {
     /// The [`HostAddr`] is unresolved.
-    /// 
+    ///
     /// [`HostAddr`]: crate::host::HostAddr
     Unresolved,
 

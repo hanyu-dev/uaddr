@@ -1,4 +1,4 @@
-//! See [`UnixAddr`] for details.
+//! UNIX domain socket (UDS) address.
 
 use alloc::string::String;
 use alloc::sync::Arc;

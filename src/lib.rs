@@ -27,9 +27,9 @@ pub mod unix;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 /// A unified address type that can represent:
 ///
-/// - IPv4 / IPv6 addresses ([`SocketAddr`]);
-/// - UNIX domain socket (UDS) addresses ([`UnixAddr`]);
-/// - host addresses ([`HostAddr`]).
+/// - [`SocketAddr`];
+/// - [`UnixAddr`];
+/// - [`HostAddr`].
 ///
 /// <div class=warning>
 ///

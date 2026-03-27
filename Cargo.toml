@@ -1,12 +1,12 @@
 [package]
 name = "uaddr"
-version = "0.4.0-dev.0"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.82.0"
 authors = ["Hantong Chen <cxwdyx620@gmail.com>"]
-categories = ["network-programming"]
-description = "A unified address type that can represent an IPv4 / IPv6 address, a UNIX domain socket (UDS) address, or a host address (hostname with port)."
-keywords = ["addr", "inet", "unix", "socket", "host"]
+categories = ["network-programming", "no-std"]
+description = "A unified address type that can represent an IPv4 / IPv6 socket address, a UNIX domain socket (UDS) address, or a hostname with a port."
+keywords = ["addr", "inet", "unix", "host"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/hanyu-dev/uaddr"
@@ -15,7 +15,6 @@ repository = "https://github.com/hanyu-dev/uaddr"
 itoa = "1.0"
 memchr = { version = "2.8", default-features = false }
 serde = { version = "1.0", default-features = false, optional = true }
-serde_test = "1.0.177"
 socket2 = { version = "0.6.3", optional = true }
 tokio = { version = "1.50", features = ["net", "rt"], optional = true }
 wrapper-lite = "0.4.0"
@@ -26,6 +25,7 @@ libc = { version = "0.2.183", default-features = false }
 [dev-dependencies]
 foldhash = { version = "0.2.0", default-features = false }
 rstest = { version = "0.26.1", default-features = false }
+serde_test = "1.0"
 tokio = { version = "1.50", features = ["rt", "macros"] }
 uaddr = { path = ".", features = ["std", "tokio", "serde", "socket2"] }
 
@@ -33,8 +33,6 @@ uaddr = { path = ".", features = ["std", "tokio", "serde", "socket2"] }
 default = ["std"]
 
 # Enable Rust's `std` support.
-#
-# This is required for unix's `SocketAddr` and many platform-specific features.
 std = ["memchr/std"]
 
 # Bridge feature: enable features related to crate `serde`.

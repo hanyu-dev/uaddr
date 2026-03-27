@@ -1,4 +1,4 @@
-//! Syntactically valid DNS name (host) with a port.
+//! Syntactically valid DNS name (hostname) with a port.
 
 use alloc::sync::Arc;
 use core::future::Future;
@@ -17,7 +17,7 @@ wrapper_lite::wrapper!(
     #[wrapper_impl(AsRef<str>)]
     #[wrapper_impl(Deref<str>)]
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    /// A syntactically valid DNS name (host) with a port.
+    /// A syntactically valid DNS name (hostname) with a port.
     ///
     /// ## Notes
     ///

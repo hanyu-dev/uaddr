@@ -9,29 +9,29 @@ This crate provides a unified address type that can represent:
 
 1. an IPv4 / IPv6 socket address;
 1. a UNIX domain socket (UDS) address;
-1. a host address.
+1. a hostname with a port.
 
-The former name of this crate was `uni-addr` and we renamed it to `uaddr` since version 0.4.0.
+## Migration from `uni-addr`
 
-## Migration from `uni-addr` (migration from 0.3.x to 0.4.0)
+`uni-addr` was renamed to `uaddr` since version 0.4.0. The key changes between 0.3.x and 0.4.0 are as follows.
 
-The key changes are:
-
-1. `crate::unix::SocketAddr` is now removed, and we introduce `crate::unix::UnixAddr` instead.
-
-   The former was a wrapper type over `std::os::unix::net::SocketAddr` and the latter is a standalone type that can represent both filesystem-based and abstract namespace UDS addresses, and can be converted to `std::os::unix::net::SocketAddr` if needed.
-
-1. New dedicated `crate::host::HostAddr` type representing a host address.
+1. Added: type `UnixAddr` representing a UNIX domain socket address.
 
    See below for the motivation.
 
-1. `crate::UniAddrInner` is now removed, just do pattern matching against `crate::UniAddr` directly.
+1. Breaking change: type `SocketAddr` for UNIX platform is now removed.
 
-   Before 0.4.0, we stored `HostAddr` directly as a "host:port" style string, which was a design mistake. In order to prevent callers from directly constructing invalid `Host` variant content, we stored the variant as `UniAddrInner` and made `UniAddr` a wrapper type, which made pattern matching on `UniAddr` very cumbersome. We have now fixed this.
+   Type `SocketAddr` for UNIX platform was a wrapper over `SocketAddr` provided by the standard library, which is quite bloated (~128 bytes), and there're also limitations in terms of the APIs. We then replace it with `UnixAddr` which can be converted to `SocketAddr` lazily if needed.
 
-1. `no_std` support.
+1. Added: type `HostAddr` representing a hostname with a port (`hostname:port`) was introduced.
 
-   Since `crate::unix::SocketAddr`, which wraps a `std::os::unix::net::SocketAddr`, has been deprecated, this library is now `no_std` compatible.
+   See below for the motivation.
+
+1. Breaking change: type `UniAddrInner` is now removed.
+
+   Before 0.4.0, the `Host` variant of the address type enum contained an `Arc<str>` to store the validated "hostname:port". To prevent callers from bypassing validation and directly constructing the `Host` variant, the enum type was named `UniAddrInner` and wrapped with `UniAddr`. After 0.4.0, we fixed this flawed design.
+
+1. Added: `no_std` support.
 
 ## License
 
