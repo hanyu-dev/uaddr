@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["nightly", "beta", "stable", "1.71.0"]
+        toolchain: ["nightly", "beta", "stable", "1.82.0"]
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
@@ -130,7 +130,7 @@ jobs:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.71.0
+          toolchain: 1.82.0
           components: clippy
       - uses: taiki-e/install-action@v2
         with:

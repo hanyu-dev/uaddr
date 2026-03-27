@@ -1,55 +1,84 @@
-//! Error types for `uni-addr`.
+//! Error types for `uaddr`.
 
 use core::fmt;
 
+#[non_exhaustive]
 #[derive(Debug)]
-/// Errors that can occur when parsing a [`UniAddr`] from a string.
+#[cfg_attr(debug_assertions, derive(PartialEq, Eq))]
+/// Errors that can occur when parsing a [`UniAddr`] / [`HostAddr`] /
+/// [`UnixAddr`] from a string.
 ///
 /// [`UniAddr`]: crate::UniAddr
+/// [`HostAddr`]: crate::host::HostAddr
+/// [`UnixAddr`]: crate::unix::UnixAddr
 pub enum ParseError {
-    /// Empty input string
+    /// Expected an non-empty string / bytes, but got an empty one.
     Empty,
 
-    /// Invalid or missing hostname, or an invalid Ipv4 / IPv6 address
+    /// Invalid host, parsing error or does not exist.
     InvalidHost,
 
-    /// Invalid address format: missing or invalid port
+    /// Invalid port, parsing error or does not exist.
     InvalidPort,
 
-    #[cfg(all(unix, any(test, feature = "std")))]
-    /// Invalid UDS address format
-    InvalidUDSAddress(std::io::Error),
+    /// Invalid [`UnixAddr`].
+    /// 
+    /// [`UnixAddr`]: crate::unix::UnixAddr
+    InvalidUnixAddr,
 
-    /// Unsupported address type on this platform
+    /// Unsupported address type for this operation on the current platform.
     Unsupported,
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => write!(f, "empty address string"),
-            Self::InvalidHost => write!(f, "invalid host name"),
+            Self::Empty => write!(f, "invalid input: expecting a non-empty string / bytes"),
+            Self::InvalidHost => write!(f, "invalid host"),
             Self::InvalidPort => write!(f, "invalid port"),
-            #[cfg(all(unix, any(test, feature = "std")))]
-            Self::InvalidUDSAddress(err) => write!(f, "invalid UDS address: {err}"),
-            Self::Unsupported => write!(f, "unsupported address type on this platform"),
+            Self::InvalidUnixAddr => write!(f, "invalid UNIX domain socket address"),
+            Self::Unsupported => write!(
+                f,
+                "unsupported address type for this operation on the current platform"
+            ),
         }
     }
 }
 
-impl core::error::Error for ParseError {
-    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+impl core::error::Error for ParseError {}
+
+#[non_exhaustive]
+#[derive(Debug)]
+#[cfg_attr(debug_assertions, derive(PartialEq, Eq))]
+/// An error type indicating that the [`UniAddr`] is invalid for some reason
+///
+/// [`UniAddr`]: crate::UniAddr
+pub enum InvalidUniAddr {
+    /// The [`HostAddr`] is unresolved.
+    /// 
+    /// [`HostAddr`]: crate::host::HostAddr
+    Unresolved,
+
+    /// The [`UniAddr`] is a [`UnixAddr`], which cannot be converted to a
+    /// [`SocketAddr`], etc.
+    ///
+    /// [`UniAddr`]: crate::UniAddr
+    /// [`HostAddr`]: crate::host::HostAddr
+    /// [`UnixAddr`]: crate::unix::UnixAddr
+    /// [`SocketAddr`]: std::net::SocketAddr
+    Unsupported,
+}
+
+impl fmt::Display for InvalidUniAddr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            #[cfg(all(unix, any(test, feature = "std")))]
-            Self::InvalidUDSAddress(err) => Some(err),
-            _ => None,
+            Self::Unresolved => write!(f, "unresolved host address"),
+            Self::Unsupported => write!(
+                f,
+                "unsupported address type for this operation on the current platform"
+            ),
         }
     }
 }
 
-#[cfg(any(test, feature = "std"))]
-impl From<ParseError> for std::io::Error {
-    fn from(value: ParseError) -> Self {
-        std::io::Error::other(value)
-    }
-}
+impl core::error::Error for InvalidUniAddr {}
