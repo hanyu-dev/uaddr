@@ -8,7 +8,7 @@ extern crate std;
 
 use core::fmt;
 use core::future::Future;
-use core::net::{IpAddr, SocketAddr};
+use core::net::SocketAddr;
 use core::str::FromStr;
 #[cfg(feature = "std")]
 use std::io;
@@ -122,7 +122,7 @@ impl<'a> UniAddr<'a> {
     /// See [`HostAddr::blocking_resolve`].
     pub fn blocking_resolve_host_name(&mut self) -> io::Result<()> {
         match self {
-            Self::Host(host) => host.blocking_resolve(),
+            Self::Host(addr) => addr.blocking_resolve(),
             _ => Ok(()),
         }
     }
@@ -130,10 +130,10 @@ impl<'a> UniAddr<'a> {
     /// See [`HostAddr::blocking_resolve_with`].
     pub fn blocking_resolve_host_name_with<F, E>(&mut self, f: F) -> Result<(), E>
     where
-        F: FnOnce(&str) -> Result<IpAddr, E>,
+        F: FnOnce(&str) -> Result<SocketAddr, E>,
     {
         match self {
-            Self::Host(host) => host.blocking_resolve_with(f),
+            Self::Host(addr) => addr.blocking_resolve_with(f),
             _ => Ok(()),
         }
     }
@@ -142,7 +142,7 @@ impl<'a> UniAddr<'a> {
     /// See [`HostAddr::resolve`].
     pub async fn resolve_host_name(&mut self) -> io::Result<()> {
         match self {
-            Self::Host(host) => host.resolve().await,
+            Self::Host(addr) => addr.resolve().await,
             _ => Ok(()),
         }
     }
@@ -151,10 +151,10 @@ impl<'a> UniAddr<'a> {
     pub async fn resolve_host_name_with<'fut, F, Fut, E>(&'fut mut self, f: F) -> Result<(), E>
     where
         F: FnOnce(&'fut str) -> Fut + Send,
-        Fut: Future<Output = Result<IpAddr, E>> + Send + 'fut,
+        Fut: Future<Output = Result<SocketAddr, E>> + Send + 'fut,
     {
         match self {
-            Self::Host(host) => host.resolve_with(f).await,
+            Self::Host(addr) => addr.resolve_with(f).await,
             _ => Ok(()),
         }
     }
