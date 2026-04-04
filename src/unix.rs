@@ -153,7 +153,7 @@ impl<'a> UnixAddr<'a> {
     /// assert!(addr.is_abstract_name());
     /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract-socket"[..]));
     ///
-    /// let addr = UnixAddr::from_bytes(b"\0abstract-socket\0").unwrap_err();
+    /// let addr = UnixAddr::from_bytes(b"\0abstract-socket\0").unwrap();
     /// assert!(addr.is_abstract_name());
     /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract-socket\0"[..]));
     ///
@@ -279,12 +279,13 @@ impl<'a> UnixAddr<'a> {
         }
     }
 
-    /// Creates a new abstract [`UnixAddr`].
+    /// Creates a new abstract [`UnixAddr`] from the given name.
     ///
     /// ## Notes
     ///
     /// Don't include the leading `b'\0'` in the name, as it will be
-    /// automatically added by this method.
+    /// automatically added by this method. If you already have a bytes slice
+    /// that starts with `b'\0'`, use [`from_abstract_name_bytes`] instead.
     ///
     /// As mentioned in the documentation of this type, any bytes slice that
     /// starts with `b'\0'` is a valid abstract address, including those with
@@ -312,6 +313,8 @@ impl<'a> UnixAddr<'a> {
     /// assert!(addr.is_abstract_name());
     /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract\0socket"[..]));
     /// ```
+    ///
+    /// [`from_abstract_name_bytes`]: Self::from_abstract_name_bytes
     pub fn from_abstract_name<const LOOSE_MODE: bool>(name: &'a [u8]) -> Result<Self, ParseError> {
         if name.len() > SUN_LEN - 1 {
             return Err(ParseError::InvalidUnixAddr);
@@ -328,6 +331,63 @@ impl<'a> UnixAddr<'a> {
         }
 
         Ok(Self::from_abstract_name_unchecked(name))
+    }
+
+    /// Creates a new abstract [`UnixAddr`] from its bytes representation, i.e.,
+    /// a bytes slice that starts with `b'\0'`.
+    ///
+    /// ## Notes
+    ///
+    /// As mentioned in the documentation of this type, any bytes slice that
+    /// starts with `b'\0'` is a valid abstract address, including those with
+    /// interior null bytes or even an empty one. Such addresses may lead to
+    /// some unexpected behaviors and are rejected by default. You can set
+    /// `LOOSE_MODE` to true to manually construct such abstract addresses if
+    /// you really need them.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use uaddr::unix::UnixAddr;
+    ///
+    /// let addr = UnixAddr::from_abstract_name_bytes::<false>(b"\0abstract-socket").unwrap();
+    /// assert!(addr.is_abstract_name());
+    /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract-socket"[..]));
+    ///
+    /// let _ = UnixAddr::from_abstract_name_bytes::<false>(b"\0").unwrap_err();
+    ///
+    /// let addr = UnixAddr::from_abstract_name_bytes::<true>(b"\0").unwrap();
+    /// assert!(addr.is_abstract_name());
+    /// assert_eq!(addr.as_abstract_name(), Some(&b""[..]));
+    ///
+    /// let _ = UnixAddr::from_abstract_name_bytes::<false>(b"\0abstract\0socket").unwrap_err();
+    ///
+    /// let addr = UnixAddr::from_abstract_name_bytes::<true>(b"\0abstract\0socket").unwrap();
+    /// assert!(addr.is_abstract_name());
+    /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract\0socket"[..]));
+    /// ```
+    pub fn from_abstract_name_bytes<const LOOSE_MODE: bool>(
+        bytes: &'a [u8],
+    ) -> Result<Self, ParseError> {
+        if bytes.len() > SUN_LEN {
+            return Err(ParseError::InvalidUnixAddr);
+        }
+
+        if bytes.is_empty() || bytes[0] != b'\0' {
+            return Err(ParseError::InvalidUnixAddr);
+        }
+
+        if !LOOSE_MODE {
+            if bytes[1..].is_empty() {
+                return Err(ParseError::Empty);
+            }
+
+            if memchr::memchr(b'\0', &bytes[1..]).is_some() {
+                return Err(ParseError::InvalidUnixAddr);
+            }
+        }
+
+        Ok(Self::from_abstract_name_bytes_unchecked(bytes))
     }
 
     /// [`from_abstract_name`](Self::from_abstract_name), but terminates the
@@ -381,6 +441,62 @@ impl<'a> UnixAddr<'a> {
         Ok(Self::from_abstract_name_unchecked(bytes))
     }
 
+    /// [`from_abstract_name_bytes`], but terminates the name at the first null
+    /// byte.
+    ///
+    /// ```rust
+    /// use uaddr::unix::UnixAddr;
+    ///
+    /// let addr = UnixAddr::from_abstract_name_bytes_until_nul::<false>(b"\0abstract-socket").unwrap();
+    /// assert!(addr.is_abstract_name());
+    /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract-socket"[..]));
+    ///
+    /// let addr = UnixAddr::from_abstract_name_bytes_until_nul::<false>(b"\0abstract\0socket").unwrap();
+    /// assert!(addr.is_abstract_name());
+    /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract"[..]));
+    /// #
+    /// # let addr = UnixAddr::from_abstract_name_bytes_until_nul::<true>(b"\0abstract\0socket").unwrap();
+    /// # assert!(addr.is_abstract_name());
+    /// # assert_eq!(addr.as_abstract_name(), Some(&b"abstract"[..]));
+    ///
+    /// let _ = UnixAddr::from_abstract_name_bytes_until_nul::<false>(b"\0").unwrap_err();
+    ///
+    /// let addr = UnixAddr::from_abstract_name_bytes_until_nul::<true>(b"\0").unwrap();
+    /// assert!(addr.is_abstract_name());
+    /// assert_eq!(addr.as_abstract_name(), Some(&b""[..]));
+    /// ```
+    ///
+    /// [`from_abstract_name_bytes`]: Self::from_abstract_name_bytes
+    pub fn from_abstract_name_bytes_until_nul<const LOOSE_MODE: bool>(
+        mut bytes: &'a [u8],
+    ) -> Result<Self, ParseError> {
+        if bytes.is_empty() || bytes[0] != b'\0' {
+            return Err(ParseError::InvalidUnixAddr);
+        }
+
+        if bytes.len() > SUN_LEN {
+            let Some(idx) = memchr::memchr(b'\0', &bytes[1..SUN_LEN]) else {
+                return Err(ParseError::InvalidUnixAddr);
+            };
+
+            bytes = &bytes[..idx + 1];
+        } else {
+            match memchr::memchr(b'\0', &bytes[1..]) {
+                Some(idx) => bytes = &bytes[..idx + 1],
+                None => {}
+            }
+        }
+
+        #[allow(clippy::collapsible_if, reason = "XXX")]
+        if !LOOSE_MODE {
+            if bytes.len() == b"\0".len() {
+                return Err(ParseError::Empty);
+            }
+        }
+
+        Ok(Self::from_abstract_name_bytes_unchecked(bytes))
+    }
+
     fn from_abstract_name_unchecked(name: &'a [u8]) -> Self {
         let mut bytes: Arc<[MaybeUninit<u8>]> = Arc::new_uninit_slice(name.len() + 1);
 
@@ -408,13 +524,44 @@ impl<'a> UnixAddr<'a> {
         self.bytes.first().is_some_and(|b| *b == b'\0')
     }
 
-    /// Returns the abstract name bytes if this is an abstract UDS address, or
+    /// Returns the abstract name if this is an abstract UDS address, or
     /// `None` otherwise.
     ///
     /// The returned bytes slice does not include the leading `b'\0'`.
+    ///
+    /// ```rust
+    /// use uaddr::unix::UnixAddr;
+    ///
+    /// let addr = UnixAddr::from_str("unix:@abstract-socket").unwrap();
+    ///
+    /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract-socket"[..]));
+    /// ```
     pub fn as_abstract_name(&self) -> Option<&[u8]> {
         if self.is_abstract_name() {
             Some(&self.bytes.as_ref()[1..])
+        } else {
+            None
+        }
+    }
+
+    /// Returns the abstract name bytes if this is an abstract UDS address, or
+    /// `None` otherwise.
+    ///
+    /// The returned bytes slice includes the leading `b'\0'`.
+    ///
+    /// ```rust
+    /// use uaddr::unix::UnixAddr;
+    ///
+    /// let addr = UnixAddr::from_str("unix:@abstract-socket").unwrap();
+    ///
+    /// assert_eq!(
+    ///     addr.as_abstract_name_bytes(),
+    ///     Some(&b"\0abstract-socket"[..])
+    /// );
+    /// ```
+    pub fn as_abstract_name_bytes(&self) -> Option<&[u8]> {
+        if self.is_abstract_name() {
+            Some(&self.bytes.as_ref())
         } else {
             None
         }
