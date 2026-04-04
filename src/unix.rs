@@ -22,7 +22,7 @@ pub const SUN_LEN: usize =
 
 #[cfg(not(unix))]
 #[doc(hidden)]
-pub const SUN_LEN: usize = usize::MAX;
+pub const SUN_LEN: usize = 108;
 
 wrapper_lite::wrapper!(
     #[gen(AsRef<[u8]>)]
