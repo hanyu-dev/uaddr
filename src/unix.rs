@@ -195,7 +195,7 @@ impl<'a> UnixAddr<'a> {
     /// let addr = UnixAddr::from_pathname(b"@abstract-socket").unwrap();
     /// assert!(addr.is_pathname());
     /// assert_eq!(addr.as_pathname(), Some(&b"@abstract-socket"[..]));
-    /// 
+    ///
     /// let _ = UnixAddr::from_pathname(b"\0abstract-socket").unwrap_err();
     /// let _ = UnixAddr::from_pathname(b"").unwrap_err();
     /// ```
@@ -419,31 +419,28 @@ impl<'a> UnixAddr<'a> {
     /// assert_eq!(addr.as_abstract_name(), Some(&b""[..]));
     /// ```
     pub fn from_abstract_name_until_nul<const LOOSE_MODE: bool>(
-        name: &'a [u8],
+        mut name: &'a [u8],
     ) -> Result<Self, ParseError> {
-        let bytes;
-
         if name.len() > SUN_LEN - 1 {
             let Some(idx) = memchr::memchr(b'\0', &name[..SUN_LEN]) else {
                 return Err(ParseError::InvalidUnixAddr);
             };
 
-            bytes = &name[..idx];
+            name = &name[..idx];
+        } else if let Some(idx) = memchr::memchr(b'\0', name) {
+            name = &name[..idx];
         } else {
-            match memchr::memchr(b'\0', name) {
-                Some(idx) => bytes = &name[..idx],
-                None => bytes = name,
-            }
+            // nothing to do.
         }
 
         #[allow(clippy::collapsible_if, reason = "XXX")]
         if !LOOSE_MODE {
-            if bytes.is_empty() {
+            if name.is_empty() {
                 return Err(ParseError::Empty);
             }
         }
 
-        Ok(Self::from_abstract_name_unchecked(bytes))
+        Ok(Self::from_abstract_name_unchecked(name))
     }
 
     /// [`from_abstract_name_bytes`], but terminates the name at the first null
