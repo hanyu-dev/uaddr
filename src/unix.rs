@@ -128,9 +128,10 @@ impl<'a> UnixAddr<'a> {
     ///
     /// ## Notes
     ///
-    /// `@` is a valid character for pathname, we just use it to replace `b'\0'`
-    /// during serialization. Unlike [`from_str`], `@` is not treated as the
-    /// indicator of an abstract UDS address here.
+    /// 1. `@` is a valid character for pathname. Unlike [`from_str`], `@` is
+    ///    not treated as the indicator of an abstract UDS address here.
+    /// 1. Unlike [`from_str`], we accept abstract socket names with interior
+    ///    null bytes here.
     ///
     /// ## Examples
     ///
@@ -145,13 +146,16 @@ impl<'a> UnixAddr<'a> {
     /// assert!(addr.is_pathname());
     /// assert_eq!(addr.as_pathname(), Some(&b"@abstract-socket"[..]));
     ///
+    /// // One pathname address with interior null bytes is invalid.
+    /// let _ = UnixAddr::from_bytes(b"@abstract-socket\0").unwrap_err();
+    ///
     /// let addr = UnixAddr::from_bytes(b"\0abstract-socket").unwrap();
     /// assert!(addr.is_abstract_name());
     /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract-socket"[..]));
     ///
-    /// // By default, we don't accept abstract socket names with interior null bytes.
-    /// let _ = UnixAddr::from_bytes(b"@abstract-socket\0").unwrap_err();
-    /// let _ = UnixAddr::from_bytes(b"\0abstract-socket\0").unwrap_err();
+    /// let addr = UnixAddr::from_bytes(b"\0abstract-socket\0").unwrap_err();
+    /// assert!(addr.is_abstract_name());
+    /// assert_eq!(addr.as_abstract_name(), Some(&b"abstract-socket\0"[..]));
     ///
     /// let addr = UnixAddr::from_bytes(b"").unwrap();
     /// assert!(addr.is_unnamed());
@@ -160,7 +164,7 @@ impl<'a> UnixAddr<'a> {
     /// [`from_str`]: Self::from_str
     pub fn from_bytes(bytes: &'a [u8]) -> Result<Self, ParseError> {
         match bytes {
-            [b'\0', bytes @ ..] => Self::from_abstract_name::<false>(bytes),
+            bytes @ [b'\0', ..] => Ok(Self::from_abstract_name_bytes_unchecked(bytes)),
             bytes @ [_, ..] => Self::from_pathname(bytes),
             [] => Ok(Self::new_unnamed()),
         }
@@ -393,6 +397,10 @@ impl<'a> UnixAddr<'a> {
         let bytes = unsafe { bytes.assume_init() };
 
         Self::from_inner(bytes)
+    }
+
+    fn from_abstract_name_bytes_unchecked(bytes: &'a [u8]) -> Self {
+        Self::from_inner(bytes.into())
     }
 
     /// Checks if the UDS address is an *abstract* one.
