@@ -13,9 +13,9 @@ use std::net::ToSocketAddrs;
 use crate::ParseError;
 
 wrapper_lite::wrapper!(
-    #[wrapper_impl(Display)]
-    #[wrapper_impl(AsRef<str>)]
-    #[wrapper_impl(Deref<str>)]
+    #[gen(Display)]
+    #[gen(AsRef<str>)]
+    #[gen(Deref<str>)]
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     /// A syntactically valid DNS name (hostname) with a port.
     ///
@@ -34,7 +34,9 @@ wrapper_lite::wrapper!(
     /// </div>
     pub struct HostAddr<'a> {
         inner: Arc<str>,
+        #[default(None)]
         resolved: Option<SocketAddr>,
+        #[default(PhantomData)]
         _lt_placeholder: PhantomData<&'a ()>,
     }
 );
@@ -80,11 +82,7 @@ impl<'a> HostAddr<'a> {
         Self::validate_port(port).map_err(|()| ParseError::InvalidPort)?;
         Self::validate_host(host.as_bytes()).map_err(|()| ParseError::InvalidHost)?;
 
-        Ok(Self {
-            inner: s.into(),
-            resolved: None,
-            _lt_placeholder: PhantomData,
-        })
+        Ok(Self::from_inner(s.into()))
     }
 
     /// Converts this [`HostAddr`] into an owned version.
@@ -93,11 +91,7 @@ impl<'a> HostAddr<'a> {
     /// but it will be useful in the future when we change the inner string type
     /// to a more flexible one and accept borrowed strings.
     pub fn to_owned(self) -> HostAddr<'static> {
-        HostAddr {
-            inner: self.inner,
-            resolved: self.resolved,
-            _lt_placeholder: PhantomData,
-        }
+        HostAddr::from_inner(self.inner)
     }
 
     #[inline]

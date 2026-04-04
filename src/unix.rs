@@ -16,7 +16,7 @@ pub const UNIX_URI_PREFIX: &str = "unix://";
 pub const UNIX_PREFIX: &str = "unix:";
 
 wrapper_lite::wrapper!(
-    #[wrapper_impl(AsRef<[u8]>)]
+    #[gen(AsRef<[u8]>)]
     #[derive(Clone, PartialEq, Eq, Hash)]
     /// A UNIX domain socket (UDS) address.
     ///
@@ -58,6 +58,7 @@ wrapper_lite::wrapper!(
     /// [`from_abstract_name`]: Self::from_abstract_name
     pub struct UnixAddr<'a> {
         bytes: Arc<[u8]>,
+        #[default(PhantomData)]
         _lt_placeholder: PhantomData<&'a ()>,
     }
 );
@@ -205,10 +206,7 @@ impl<'a> UnixAddr<'a> {
             return Err(ParseError::InvalidUnixAddr);
         }
 
-        Ok(Self {
-            bytes: Arc::from(path),
-            _lt_placeholder: PhantomData,
-        })
+        Ok(Self::from_inner(Arc::from(path)))
     }
 
     /// [`from_pathname`], but terminates the bytes at the first null byte.
@@ -259,10 +257,7 @@ impl<'a> UnixAddr<'a> {
             return Err(ParseError::InvalidUnixAddr);
         }
 
-        Ok(Self {
-            bytes: Arc::from(bytes),
-            _lt_placeholder: PhantomData,
-        })
+        Ok(Self::from_inner(Arc::from(bytes)))
     }
 
     /// Checks if the address is a *pathname* one.
@@ -397,10 +392,7 @@ impl<'a> UnixAddr<'a> {
         #[allow(unsafe_code, reason = "XXX")]
         let bytes = unsafe { bytes.assume_init() };
 
-        Self {
-            bytes,
-            _lt_placeholder: PhantomData,
-        }
+        Self::from_inner(bytes)
     }
 
     /// Checks if the UDS address is an *abstract* one.
@@ -422,10 +414,7 @@ impl<'a> UnixAddr<'a> {
 
     /// Creates an new unnamed [`UnixAddr`].
     pub fn new_unnamed() -> Self {
-        Self {
-            bytes: Arc::from([]),
-            _lt_placeholder: PhantomData,
-        }
+        Self::from_inner(Arc::from([]))
     }
 
     /// Checks if the UDS address is an *unnamed* one.
@@ -439,10 +428,7 @@ impl<'a> UnixAddr<'a> {
     /// but it will be useful in the future when we change the inner bytes type
     /// to a more flexible one and accept borrowed bytes.
     pub fn to_owned(self) -> UnixAddr<'static> {
-        UnixAddr {
-            bytes: self.bytes,
-            _lt_placeholder: PhantomData,
-        }
+        UnixAddr::from_inner(self.bytes)
     }
 }
 
