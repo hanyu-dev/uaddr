@@ -479,12 +479,11 @@ impl<'a> UnixAddr<'a> {
                 return Err(ParseError::InvalidUnixAddr);
             };
 
-            bytes = &bytes[..idx + 1];
+            bytes = &bytes[..=idx];
+        } else if let Some(idx) = memchr::memchr(b'\0', &bytes[1..]) {
+            bytes = &bytes[..=idx];
         } else {
-            match memchr::memchr(b'\0', &bytes[1..]) {
-                Some(idx) => bytes = &bytes[..idx + 1],
-                None => {}
-            }
+            // nothing to do.
         }
 
         #[allow(clippy::collapsible_if, reason = "XXX")]
@@ -561,7 +560,7 @@ impl<'a> UnixAddr<'a> {
     /// ```
     pub fn as_abstract_name_bytes(&self) -> Option<&[u8]> {
         if self.is_abstract_name() {
-            Some(&self.bytes.as_ref())
+            Some(self.bytes.as_ref())
         } else {
             None
         }
