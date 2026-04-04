@@ -475,7 +475,7 @@ impl<'a> UnixAddr<'a> {
         }
 
         if bytes.len() > SUN_LEN {
-            let Some(idx) = memchr::memchr(b'\0', &bytes[1..SUN_LEN]) else {
+            let Some(idx) = memchr::memchr(b'\0', &bytes[1..=SUN_LEN]) else {
                 return Err(ParseError::InvalidUnixAddr);
             };
 
@@ -660,5 +660,46 @@ impl FromStr for UnixAddr<'static> {
     /// See [`UnixAddr::from_str`].
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         UnixAddr::from_str(s).map(UnixAddr::to_owned)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UnixAddr;
+
+    #[test]
+    fn test_from_abstract_name_until_nul() {
+        let _ = UnixAddr::from_abstract_name_until_nul::<true>(&[
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        ])
+        .unwrap();
+        let _ = UnixAddr::from_abstract_name_until_nul::<true>(&[
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        ])
+        .unwrap_err();
+    }
+
+    #[test]
+    fn test_from_abstract_name_bytes_until_nul() {
+        let _ = UnixAddr::from_abstract_name_bytes_until_nul::<true>(&[
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        ])
+        .unwrap();
+        let _ = UnixAddr::from_abstract_name_bytes_until_nul::<true>(&[
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        ])
+        .unwrap_err();
     }
 }
