@@ -50,7 +50,7 @@ impl core::error::Error for ParseError {}
 #[non_exhaustive]
 #[derive(Debug)]
 #[cfg_attr(debug_assertions, derive(PartialEq, Eq))]
-/// An error type indicating that the [`UniAddr`] is invalid for some reason
+/// An error type indicating that the [`UniAddr`] is invalid for some reason.
 ///
 /// [`UniAddr`]: crate::UniAddr
 pub enum InvalidUniAddr {
@@ -63,7 +63,6 @@ pub enum InvalidUniAddr {
     /// [`SocketAddr`], etc.
     ///
     /// [`UniAddr`]: crate::UniAddr
-    /// [`HostAddr`]: crate::host::HostAddr
     /// [`UnixAddr`]: crate::unix::UnixAddr
     /// [`SocketAddr`]: std::net::SocketAddr
     Unsupported,

@@ -1,4 +1,4 @@
-//! Glue codes
+//! Bridge implementations between `uaddr` and external crates.
 
 #[cfg(all(unix, feature = "std"))]
 mod std {

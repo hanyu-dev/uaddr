@@ -119,7 +119,11 @@ impl<'a> UniAddr<'a> {
     }
 
     #[cfg(feature = "std")]
-    /// See [`HostAddr::blocking_resolve`].
+    /// Resolves the hostname if this is a [`HostAddr`].
+    ///
+    /// This is a no-op for `Inet` and  `Unix` variants.
+    ///
+    /// See [`HostAddr::blocking_resolve`] for details and error semantics.
     pub fn blocking_resolve_host_name(&mut self) -> io::Result<()> {
         match self {
             Self::Host(addr) => addr.blocking_resolve(),
@@ -127,7 +131,11 @@ impl<'a> UniAddr<'a> {
         }
     }
 
-    /// See [`HostAddr::blocking_resolve_with`].
+    /// Resolves the hostname using a custom resolver if this is a [`HostAddr`].
+    ///
+    /// This is a no-op for `Inet` and `Unix` variants.
+    ///
+    /// See [`HostAddr::blocking_resolve_with`] for details.
     pub fn blocking_resolve_host_name_with<F, E>(&mut self, f: F) -> Result<(), E>
     where
         F: FnOnce(&str) -> Result<SocketAddr, E>,
@@ -139,7 +147,11 @@ impl<'a> UniAddr<'a> {
     }
 
     #[cfg(feature = "tokio")]
-    /// See [`HostAddr::resolve`].
+    /// Resolves the hostname asynchronously if this is a [`HostAddr`].
+    ///
+    /// This is a no-op for `Inet` and `Unix` variants.
+    ///
+    /// See [`HostAddr::resolve`] for details and error semantics.
     pub async fn resolve_host_name(&mut self) -> io::Result<()> {
         match self {
             Self::Host(addr) => addr.resolve().await,
@@ -147,7 +159,12 @@ impl<'a> UniAddr<'a> {
         }
     }
 
-    /// See [`HostAddr::resolve_with`].
+    /// Resolves the hostname asynchronously using a custom resolver if this is
+    /// a [`HostAddr`].
+    ///
+    /// This is a no-op for `Inet` and `Unix` variants.
+    ///
+    /// See [`HostAddr::resolve_with`] for details.
     pub async fn resolve_host_name_with<'fut, F, Fut, E>(&'fut mut self, f: F) -> Result<(), E>
     where
         F: FnOnce(&'fut str) -> Fut + Send,

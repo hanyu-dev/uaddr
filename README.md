@@ -1,37 +1,56 @@
 # uaddr
 
-[![Test pipeline](https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml/badge.svg)](https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml?query=branch%3Amain)
-[![Crates.io](https://img.shields.io/crates/v/uaddr)](https://crates.io/crates/uaddr)
-[![Docs.rs](https://img.shields.io/docsrs/uaddr)](https://docs.rs/crate/uaddr/latest)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/license/mit/)
+[![test pipeline](https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml/badge.svg)](https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml?query=branch%3Amain)
+[![crates.io](https://img.shields.io/crates/v/uaddr)](https://crates.io/crates/uaddr)
+[![docs.rs](https://img.shields.io/docsrs/uaddr)](https://docs.rs/crate/uaddr/latest)
+[![license: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/license/mit/)
 
-This crate provides a unified address type that can represent:
+A unified address type that can represent an IPv4/IPv6 socket address, a UNIX
+domain socket (UDS) address, or a hostname with a port. Supports `no_std`.
 
-1. an IPv4 / IPv6 socket address;
-1. a UNIX domain socket (UDS) address;
-1. a hostname with a port.
+## Usage
 
-## Migration from `uni-addr`
+Adds `uaddr` to your `Cargo.toml`:
 
-`uni-addr` was renamed to `uaddr` since version 0.4.0. The key changes between 0.3.x and 0.4.0 are as follows.
+```toml
+[dependencies]
+uaddr = "0.4"
+```
 
-1. Added: type `UnixAddr` representing a UNIX domain socket address.
+Then parses any supported address format:
 
-   See below for the motivation.
+```rust
+use std::net::SocketAddr;
 
-1. Breaking change: type `SocketAddr` for UNIX platform is now removed.
+use uaddr::UniAddr;
 
-   Type `SocketAddr` for UNIX platform was a wrapper over `SocketAddr` provided by the standard library, which is quite bloated (~128 bytes), and there're also limitations in terms of the APIs. We then replace it with `UnixAddr` which can be converted to `SocketAddr` lazily if needed.
+// IPv4 socket address
+let addr = "127.0.0.1:8080".parse::<UniAddr>().unwrap();
+assert!(matches!(addr, UniAddr::Inet(SocketAddr::V4(_))));
 
-1. Added: type `HostAddr` representing a hostname with a port (`hostname:port`) was introduced.
+// IPv6 socket address
+let addr = "[::1]:8080".parse::<UniAddr>().unwrap();
+assert!(matches!(addr, UniAddr::Inet(SocketAddr::V6(_))));
 
-   See below for the motivation.
+// Hostname with port (resolved lazily)
+let addr = "example.com:443".parse::<UniAddr>().unwrap();
+assert!(matches!(addr, UniAddr::Host(_)));
+assert!(addr.resolved().is_err());
 
-1. Breaking change: type `UniAddrInner` is now removed.
+// UNIX domain socket address - pathname address
+let addr = "unix:/run/app.sock".parse::<UniAddr>().unwrap();
+assert!(matches!(addr, UniAddr::Unix(_)));
 
-   Before 0.4.0, the `Host` variant of the address type enum contained an `Arc<str>` to store the validated "hostname:port". To prevent callers from bypassing validation and directly constructing the `Host` variant, the enum type was named `UniAddrInner` and wrapped with `UniAddr`. After 0.4.0, we fixed this flawed design.
+// UNIX domain socket address - abstract address
+let addr = "unix:@my-service".parse::<UniAddr>().unwrap();
+assert!(matches!(addr, UniAddr::Unix(_)));
+```
 
-1. Added: `no_std` support.
+Please refer to the documentation for more details and examples.
+
+## Changelog
+
+[CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

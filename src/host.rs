@@ -95,7 +95,8 @@ impl<'a> HostAddr<'a> {
     }
 
     #[inline]
-    /// Returns the resolved socket address.
+    /// Returns the resolved socket address, or `None` if the hostname has not
+    /// been resolved yet.
     pub const fn resolved(&self) -> Option<SocketAddr> {
         self.resolved
     }
@@ -161,8 +162,8 @@ impl<'a> HostAddr<'a> {
     /// Resolves the host asynchronously with the given custom resolver
     /// function.
     ///
-    /// The resolver function should take the host as input and return a
-    /// `IpAddr` on success.
+    /// The resolver function should take the host address as input and return a
+    /// `SocketAddr` on success.
     ///
     /// # Errors
     ///

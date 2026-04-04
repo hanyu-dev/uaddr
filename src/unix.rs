@@ -15,6 +15,15 @@ pub const UNIX_URI_PREFIX: &str = "unix://";
 /// Prefix for UDS addresses in general format.
 pub const UNIX_PREFIX: &str = "unix:";
 
+#[cfg(unix)]
+#[doc(hidden)]
+pub const SUN_LEN: usize =
+    core::mem::size_of::<libc::sockaddr_un>() - core::mem::size_of::<libc::sa_family_t>();
+
+#[cfg(not(unix))]
+#[doc(hidden)]
+pub const SUN_LEN: usize = usize::MAX;
+
 wrapper_lite::wrapper!(
     #[gen(AsRef<[u8]>)]
     #[derive(Clone, PartialEq, Eq, Hash)]
@@ -40,7 +49,7 @@ wrapper_lite::wrapper!(
     /// Additionally, any bytes slice that starts with `b'\0'` is a valid
     /// abstract address, which means that an abstract address with interior
     /// null bytes or even an empty abstract address is a "legal" abstract
-    /// address. Such address may lead to some unexpected behaviors and is
+    /// address. Such addresses may lead to some unexpected behaviors and is
     /// rejected here by default. You can use the [`from_abstract_name`] method
     /// with `LOOSE_MODE` set to true to manually construct such abstract
     /// addresses if you really need them.
@@ -63,25 +72,16 @@ wrapper_lite::wrapper!(
     }
 );
 
-#[doc(hidden)]
-#[cfg(unix)]
-pub const SUN_LEN: usize =
-    core::mem::size_of::<libc::sockaddr_un>() - core::mem::size_of::<libc::sa_family_t>();
-
-#[doc(hidden)]
-#[cfg(not(unix))]
-pub const SUN_LEN: usize = usize::MAX;
-
 impl<'a> UnixAddr<'a> {
     #[allow(clippy::should_implement_trait, reason = "For lifetime stuff.")]
-    /// Parses (deserializes) the given string to a [`UnixAddr`].
+    /// Parses the given string to a [`UnixAddr`].
     ///
     /// This method accepts the following two serialization formats:
     ///
     /// 1. `unix:{unix-socket-address}`;
     /// 1. `unix://{unix-socket-address}`.
     ///
-    /// One `{unix-socket-address}` may be a file system path (for pathname
+    /// A `{unix-socket-address}` may be a file system path (for pathname
     /// addresses), or a string starting with `@` or `\0` (for abstract
     /// addresses), or an empty string (for unnamed addresses).
     ///
@@ -135,7 +135,7 @@ impl<'a> UnixAddr<'a> {
     /// 1. `@` is a valid character for pathname. Unlike [`from_str`], `@` is
     ///    not treated as the indicator of an abstract UDS address here.
     /// 1. Unlike [`from_str`], we accept abstract socket names with interior
-    ///    null bytes here.
+    ///    null bytes or empty names here (`LOOSE_MODE`).
     ///
     /// ## Examples
     ///
@@ -568,7 +568,7 @@ impl<'a> UnixAddr<'a> {
         }
     }
 
-    /// Creates an new unnamed [`UnixAddr`].
+    /// Creates a new unnamed [`UnixAddr`].
     pub fn new_unnamed() -> Self {
         Self::from_inner(Arc::from([]))
     }
