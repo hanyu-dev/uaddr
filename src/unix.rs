@@ -63,12 +63,14 @@ wrapper_lite::wrapper!(
     }
 );
 
+#[doc(hidden)]
 #[cfg(unix)]
-const SUN_LEN: usize =
+pub const SUN_LEN: usize =
     core::mem::size_of::<libc::sockaddr_un>() - core::mem::size_of::<libc::sa_family_t>();
 
+#[doc(hidden)]
 #[cfg(not(unix))]
-const SUN_LEN: usize = usize::MAX;
+pub const SUN_LEN: usize = usize::MAX;
 
 impl<'a> UnixAddr<'a> {
     #[allow(clippy::should_implement_trait, reason = "For lifetime stuff.")]
@@ -193,7 +195,7 @@ impl<'a> UnixAddr<'a> {
     /// let addr = UnixAddr::from_pathname(b"@abstract-socket").unwrap();
     /// assert!(addr.is_pathname());
     /// assert_eq!(addr.as_pathname(), Some(&b"@abstract-socket"[..]));
-    ///
+    /// 
     /// let _ = UnixAddr::from_pathname(b"\0abstract-socket").unwrap_err();
     /// let _ = UnixAddr::from_pathname(b"").unwrap_err();
     /// ```
@@ -212,7 +214,7 @@ impl<'a> UnixAddr<'a> {
             return Err(ParseError::InvalidUnixAddr);
         }
 
-        Ok(Self::from_inner(Arc::from(path)))
+        Ok(Self::from_pathname_unchecked(path))
     }
 
     /// [`from_pathname`], but terminates the bytes at the first null byte.
@@ -239,31 +241,32 @@ impl<'a> UnixAddr<'a> {
     /// ```
     ///
     /// [`from_pathname`]: Self::from_pathname
-    pub fn from_pathname_until_nul(path: &'a [u8]) -> Result<Self, ParseError> {
+    pub fn from_pathname_until_nul(mut path: &'a [u8]) -> Result<Self, ParseError> {
         if path.is_empty() {
             return Err(ParseError::Empty);
         }
 
-        let bytes;
-
         if path.len() > SUN_LEN {
-            let Some(idx) = memchr::memchr(b'\0', &path[..SUN_LEN]) else {
+            let Some(idx) = memchr::memchr(b'\0', &path[..=SUN_LEN]) else {
                 return Err(ParseError::InvalidUnixAddr);
             };
 
-            bytes = &path[..idx];
+            path = &path[..idx];
+        } else if let Some(idx) = memchr::memchr(b'\0', path) {
+            path = &path[..idx];
         } else {
-            match memchr::memchr(b'\0', path) {
-                Some(idx) => bytes = &path[..idx],
-                None => bytes = path,
-            }
+            // nothing to do.
         }
 
-        if bytes.is_empty() {
+        if path.is_empty() {
             return Err(ParseError::InvalidUnixAddr);
         }
 
-        Ok(Self::from_inner(Arc::from(bytes)))
+        Ok(Self::from_pathname_unchecked(path))
+    }
+
+    fn from_pathname_unchecked(path: &'a [u8]) -> Self {
+        Self::from_inner(Arc::from(path))
     }
 
     /// Checks if the address is a *pathname* one.
@@ -667,41 +670,83 @@ impl FromStr for UnixAddr<'static> {
 
 #[cfg(test)]
 mod tests {
-    use super::UnixAddr;
+    use alloc::vec::Vec;
+    use core::iter;
+
+    use super::*;
+
+    #[test]
+    fn test_from_pathname_until_nul() {
+        let _ = UnixAddr::from_pathname_until_nul(
+            &iter::repeat_n(b'1', SUN_LEN - 1)
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap();
+
+        let _ = UnixAddr::from_pathname_until_nul(
+            &iter::repeat_n(b'1', SUN_LEN)
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap();
+
+        let _ = UnixAddr::from_pathname_until_nul(
+            &iter::repeat_n(b'1', SUN_LEN + 1)
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap_err();
+    }
 
     #[test]
     fn test_from_abstract_name_until_nul() {
-        let _ = UnixAddr::from_abstract_name_until_nul::<true>(&[
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-        ])
+        let _ = UnixAddr::from_abstract_name_until_nul::<true>(
+            &iter::repeat_n(1, SUN_LEN - 2)
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
         .unwrap();
-        let _ = UnixAddr::from_abstract_name_until_nul::<true>(&[
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-        ])
+
+        let _ = UnixAddr::from_abstract_name_until_nul::<true>(
+            &iter::repeat_n(1, SUN_LEN - 1)
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap();
+
+        let _ = UnixAddr::from_abstract_name_until_nul::<true>(
+            &iter::repeat_n(1, SUN_LEN)
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
         .unwrap_err();
     }
 
     #[test]
     fn test_from_abstract_name_bytes_until_nul() {
-        let _ = UnixAddr::from_abstract_name_bytes_until_nul::<true>(&[
-            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-        ])
+        let _ = UnixAddr::from_abstract_name_bytes_until_nul::<true>(
+            &iter::once(0)
+                .chain(iter::repeat_n(1, SUN_LEN - 2))
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
         .unwrap();
-        let _ = UnixAddr::from_abstract_name_bytes_until_nul::<true>(&[
-            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-        ])
+
+        let _ = UnixAddr::from_abstract_name_bytes_until_nul::<true>(
+            &iter::once(0)
+                .chain(iter::repeat_n(1, SUN_LEN - 1))
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap();
+
+        let _ = UnixAddr::from_abstract_name_bytes_until_nul::<true>(
+            &iter::once(0)
+                .chain(iter::repeat_n(1, SUN_LEN))
+                .chain(iter::once(0))
+                .collect::<Vec<u8>>(),
+        )
         .unwrap_err();
     }
 }
