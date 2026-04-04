@@ -87,6 +87,8 @@ impl<'a> UnixAddr<'a> {
     ///
     /// ```rust
     /// use uaddr::unix::UnixAddr;
+    /// #
+    /// # let _ = UnixAddr::from_str("/some/path/without/unix/prefix").unwrap_err();
     ///
     /// let addr = UnixAddr::from_str("unix:/path/to/your/file.socket").unwrap();
     /// assert!(addr.is_pathname());
@@ -164,7 +166,7 @@ impl<'a> UnixAddr<'a> {
     /// [`from_str`]: Self::from_str
     pub fn from_bytes(bytes: &'a [u8]) -> Result<Self, ParseError> {
         match bytes {
-            bytes @ [b'\0', ..] => Ok(Self::from_abstract_name_bytes_unchecked(bytes)),
+            bytes @ [b'\0', ..] => Self::from_abstract_name_bytes::<true>(bytes),
             bytes @ [_, ..] => Self::from_pathname(bytes),
             [] => Ok(Self::new_unnamed()),
         }
