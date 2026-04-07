@@ -13,9 +13,9 @@ use std::net::ToSocketAddrs;
 use crate::ParseError;
 
 wrapper_lite::wrapper!(
-    #[gen(Display)]
-    #[gen(AsRef<str>)]
-    #[gen(Deref<str>)]
+    #[wrapper(Display)]
+    #[wrapper(AsRef<str>)]
+    #[wrapper(Deref<str>)]
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     /// A syntactically valid DNS name (hostname) with a port.
     ///
@@ -54,7 +54,7 @@ impl<'a> HostAddr<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use uaddr::host::HostAddr;
+    /// use uaddr::HostAddr;
     ///
     /// let addr = HostAddr::from_str("example.com:8080").unwrap();
     /// assert_eq!(addr.as_ref(), "example.com:8080");

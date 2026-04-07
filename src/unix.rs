@@ -25,7 +25,7 @@ pub const SUN_LEN: usize =
 pub const SUN_LEN: usize = 108;
 
 wrapper_lite::wrapper!(
-    #[gen(AsRef<[u8]>)]
+    #[wrapper(AsRef<[u8]>)]
     #[derive(Clone, PartialEq, Eq, Hash)]
     /// A UNIX domain socket (UDS) address.
     ///
@@ -88,7 +88,7 @@ impl<'a> UnixAddr<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     /// #
     /// # let _ = UnixAddr::from_str("/some/path/without/unix/prefix").unwrap_err();
     ///
@@ -140,7 +140,7 @@ impl<'a> UnixAddr<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_bytes(b"/path/to/your/file.socket").unwrap();
     /// assert!(addr.is_pathname());
@@ -185,7 +185,7 @@ impl<'a> UnixAddr<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_pathname(b"/path/to/your/file.socket").unwrap();
     /// assert!(addr.is_pathname());
@@ -222,7 +222,7 @@ impl<'a> UnixAddr<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_pathname_until_nul(b"/path/to/your/file.socket").unwrap();
     /// assert!(addr.is_pathname());
@@ -302,7 +302,7 @@ impl<'a> UnixAddr<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_abstract_name::<false>(b"abstract-socket").unwrap();
     /// assert!(addr.is_abstract_name());
@@ -353,7 +353,7 @@ impl<'a> UnixAddr<'a> {
     /// ## Examples
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_abstract_name_bytes::<false>(b"\0abstract-socket").unwrap();
     /// assert!(addr.is_abstract_name());
@@ -399,7 +399,7 @@ impl<'a> UnixAddr<'a> {
     /// name at the first null byte.
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_abstract_name_until_nul::<false>(b"abstract-socket").unwrap();
     /// assert!(addr.is_abstract_name());
@@ -447,7 +447,7 @@ impl<'a> UnixAddr<'a> {
     /// byte.
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_abstract_name_bytes_until_nul::<false>(b"\0abstract-socket").unwrap();
     /// assert!(addr.is_abstract_name());
@@ -531,7 +531,7 @@ impl<'a> UnixAddr<'a> {
     /// The returned bytes slice does not include the leading `b'\0'`.
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_str("unix:@abstract-socket").unwrap();
     ///
@@ -551,7 +551,7 @@ impl<'a> UnixAddr<'a> {
     /// The returned bytes slice includes the leading `b'\0'`.
     ///
     /// ```rust
-    /// use uaddr::unix::UnixAddr;
+    /// use uaddr::UnixAddr;
     ///
     /// let addr = UnixAddr::from_str("unix:@abstract-socket").unwrap();
     ///

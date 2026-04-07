@@ -1,9 +1,18 @@
 # uaddr
 
-[![test pipeline](https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml/badge.svg)](https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml?query=branch%3Amain)
-[![crates.io](https://img.shields.io/crates/v/uaddr)](https://crates.io/crates/uaddr)
-[![docs.rs](https://img.shields.io/docsrs/uaddr)](https://docs.rs/crate/uaddr/latest)
-[![license: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/license/mit/)
+[![test pipeline][test-pipeline-badge]][test-pipeline-url]
+[![crates.io][crates-badge]][crates-url]
+[![docs.rs][docs-badge]][docs-url]
+[![license][license-badge]][license-url]
+
+[test-pipeline-badge]: https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml/badge.svg
+[test-pipeline-url]: https://github.com/hanyu-dev/uaddr/actions/workflows/ci.yml?query=branch%3Amain
+[crates-badge]: https://img.shields.io/crates/v/uaddr
+[crates-url]: https://crates.io/crates/uaddr
+[docs-badge]: https://docs.rs/uaddr/badge.svg
+[docs-url]: https://docs.rs/uaddr
+[license-badge]: https://img.shields.io/crates/l/uaddr
+[license-url]: https://opensource.org/licenses/MIT
 
 A unified address type that can represent an IPv4 / IPv6 socket address, a UNIX
 domain socket (UDS) address, or a hostname with a port. Supports `no_std`.

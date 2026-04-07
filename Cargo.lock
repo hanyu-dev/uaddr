@@ -288,6 +288,6 @@ dependencies = [
 
 [[package]]
 name = "wrapper-lite"
-version = "0.5.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0320e96750362b4cbb1e65573188970e8af371f4b90df8f58fac542c4560614"
+checksum = "351c15184516718bf257a1ffc3dbb5154a5fd30443e063877b577b522f02cef3"

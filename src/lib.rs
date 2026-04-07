@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 extern crate alloc;
 
@@ -13,15 +14,14 @@ use core::str::FromStr;
 #[cfg(feature = "std")]
 use std::io;
 
-use crate::error::{InvalidUniAddr, ParseError};
+pub use crate::error::{InvalidUniAddr, ParseError};
 pub use crate::host::HostAddr;
-pub use crate::unix::UnixAddr;
-use crate::unix::{UNIX_PREFIX, UNIX_URI_PREFIX};
+pub use crate::unix::{UnixAddr, SUN_LEN, UNIX_PREFIX, UNIX_URI_PREFIX};
 
 mod bridge;
-pub mod error;
-pub mod host;
-pub mod unix;
+mod error;
+mod host;
+mod unix;
 
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -16,6 +16,7 @@ mod std {
     use crate::unix::UnixAddr;
     use crate::UniAddr;
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl TryFrom<UnixAddr<'_>> for SocketAddr {
         type Error = io::Error;
 
@@ -24,6 +25,7 @@ mod std {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl TryFrom<&UnixAddr<'_>> for SocketAddr {
         type Error = io::Error;
 
@@ -48,6 +50,7 @@ mod std {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl TryFrom<SocketAddr> for UnixAddr<'static> {
         type Error = ParseError;
 
@@ -56,6 +59,7 @@ mod std {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl<'a> TryFrom<&'a SocketAddr> for UnixAddr<'a> {
         type Error = ParseError;
 
@@ -81,6 +85,7 @@ mod std {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl TryFrom<SocketAddr> for UniAddr<'static> {
         type Error = ParseError;
 
@@ -89,6 +94,7 @@ mod std {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl<'a> TryFrom<&'a SocketAddr> for UniAddr<'a> {
         type Error = ParseError;
 
@@ -97,6 +103,7 @@ mod std {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl TryFrom<UniAddr<'_>> for SocketAddr {
         type Error = io::Error;
 
@@ -105,6 +112,7 @@ mod std {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(all(unix, feature = "std"))))]
     impl TryFrom<&UniAddr<'_>> for SocketAddr {
         type Error = io::Error;
 
@@ -131,6 +139,7 @@ mod socket2 {
     use crate::unix::UnixAddr;
     use crate::UniAddr;
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<UnixAddr<'_>> for socket2::SockAddr {
         type Error = io::Error;
 
@@ -140,6 +149,7 @@ mod socket2 {
     }
 
     #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<&UnixAddr<'_>> for socket2::SockAddr {
         type Error = io::Error;
 
@@ -153,6 +163,7 @@ mod socket2 {
     }
 
     #[cfg(not(unix))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<&UnixAddr<'_>> for socket2::SockAddr {
         type Error = io::Error;
 
@@ -161,6 +172,7 @@ mod socket2 {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<HostAddr<'_>> for socket2::SockAddr {
         type Error = io::Error;
 
@@ -169,6 +181,7 @@ mod socket2 {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<&HostAddr<'_>> for socket2::SockAddr {
         type Error = io::Error;
 
@@ -180,6 +193,7 @@ mod socket2 {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<UniAddr<'_>> for SockAddr {
         type Error = io::Error;
 
@@ -188,6 +202,7 @@ mod socket2 {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<&UniAddr<'_>> for SockAddr {
         type Error = io::Error;
 
@@ -200,6 +215,7 @@ mod socket2 {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<SockAddr> for UnixAddr<'static> {
         type Error = ParseError;
 
@@ -209,6 +225,7 @@ mod socket2 {
     }
 
     #[cfg(unix)]
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl<'a> TryFrom<&'a socket2::SockAddr> for UnixAddr<'a> {
         type Error = ParseError;
 
@@ -233,6 +250,7 @@ mod socket2 {
     }
 
     #[cfg(not(unix))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl<'a> TryFrom<&'a socket2::SockAddr> for UnixAddr<'a> {
         type Error = ParseError;
 
@@ -241,6 +259,7 @@ mod socket2 {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl TryFrom<SockAddr> for UniAddr<'static> {
         type Error = ParseError;
 
@@ -249,6 +268,7 @@ mod socket2 {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "socket2")))]
     impl<'a> TryFrom<&'a SockAddr> for UniAddr<'a> {
         type Error = ParseError;
 
@@ -272,6 +292,7 @@ mod tokio {
     use crate::unix::UnixAddr;
     use crate::UniAddr;
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl TryFrom<UnixAddr<'_>> for tokio::net::unix::SocketAddr {
         type Error = io::Error;
 
@@ -280,6 +301,7 @@ mod tokio {
         }
     }
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl TryFrom<&UnixAddr<'_>> for tokio::net::unix::SocketAddr {
         type Error = io::Error;
 
@@ -288,6 +310,7 @@ mod tokio {
         }
     }
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl TryFrom<tokio::net::unix::SocketAddr> for UnixAddr<'static> {
         type Error = ParseError;
 
@@ -296,6 +319,7 @@ mod tokio {
         }
     }
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl<'a> TryFrom<&'a tokio::net::unix::SocketAddr> for UnixAddr<'a> {
         type Error = ParseError;
 
@@ -320,6 +344,7 @@ mod tokio {
         }
     }
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl TryFrom<tokio::net::unix::SocketAddr> for UniAddr<'static> {
         type Error = ParseError;
 
@@ -328,6 +353,7 @@ mod tokio {
         }
     }
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl<'a> TryFrom<&'a tokio::net::unix::SocketAddr> for UniAddr<'a> {
         type Error = ParseError;
 
@@ -336,6 +362,7 @@ mod tokio {
         }
     }
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl TryFrom<UniAddr<'_>> for tokio::net::unix::SocketAddr {
         type Error = io::Error;
 
@@ -344,6 +371,7 @@ mod tokio {
         }
     }
 
+    #[cfg(all(unix, feature = "tokio"))]
     impl TryFrom<&UniAddr<'_>> for tokio::net::unix::SocketAddr {
         type Error = io::Error;
 
@@ -357,10 +385,6 @@ mod tokio {
             }
         }
     }
-
-    #[cfg(test)]
-    #[test]
-    fn test_try_from() {}
 }
 
 #[cfg(feature = "serde")]
